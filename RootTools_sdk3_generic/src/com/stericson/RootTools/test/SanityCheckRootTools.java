@@ -37,11 +37,11 @@ import android.os.StrictMode;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.stericson.RootTools.Constants;
 import com.stericson.RootTools.RootTools;
 import com.stericson.RootTools.containers.Permissions;
 import com.stericson.RootTools.exceptions.RootDeniedException;
 import com.stericson.RootTools.execution.CommandCapture;
+import com.stericson.RootTools.execution.JavaCommandCapture;
 import com.stericson.RootTools.execution.Shell;
 
 public class SanityCheckRootTools extends Activity {
@@ -226,32 +226,96 @@ public class SanityCheckRootTools extends Activity {
                 visualUpdate(TestHandler.ACTION_DISPLAY, "Permissions == null k\n\n");
             }
 
+            visualUpdate(TestHandler.ACTION_PDISPLAY, "JAVA");
+            visualUpdate(TestHandler.ACTION_DISPLAY, "[ Running some Java code ]\n");
+
+            Shell shell;
+            try {
+                shell = RootTools.getShell(true);
+                JavaCommandCapture cmd = new JavaCommandCapture(
+                        43,
+                        false,
+                        SanityCheckRootTools.this,
+                        "com.stericson.RootToolsTests.NativeJavaClass") {
+
+                    @Override
+                    public void commandOutput(int id, String line) {
+                        super.commandOutput(id, line);
+                        visualUpdate(TestHandler.ACTION_DISPLAY, line + "\n");
+                    }
+                };
+                shell.add(cmd);
+
+            } catch (Exception e) {
+                // Oops. Say, did you run RootClass and move the resulting anbuild.dex " file to res/raw?
+                // If you don't you will not be able to check root mode Java.
+                e.printStackTrace();
+            }
+
             visualUpdate(TestHandler.ACTION_PDISPLAY, "Testing df");
             long spaceValue = RootTools.getSpace("/data");
             visualUpdate(TestHandler.ACTION_DISPLAY, "[ Checking /data partition size]\n");
             visualUpdate(TestHandler.ACTION_DISPLAY, spaceValue + "k\n\n");
 
-            visualUpdate(TestHandler.ACTION_PDISPLAY, "All tests complete.");
-            visualUpdate(TestHandler.ACTION_HIDE, null);
-
-            Shell shell;
-
             try {
                 shell = RootTools.getShell(true);
 
-                CommandCapture cmd = new CommandCapture(0, "echo hello");
+                CommandCapture cmd = new CommandCapture(42, false, "find /") {
 
-                shell.add(cmd).waitForFinish();
+                    boolean _catch = false;
+
+                    @Override
+                    public void commandOutput(int id, String line) {
+                        super.commandOutput(id, line);
+
+                        if (_catch) {
+                            RootTools.log("CAUGHT!!!");
+                        }
+                    }
+
+                    @Override
+                    public void commandTerminated(int id, String reason) {
+                        synchronized (SanityCheckRootTools.this) {
+
+                            _catch = true;
+                            visualUpdate(TestHandler.ACTION_PDISPLAY, "All tests complete.");
+                            visualUpdate(TestHandler.ACTION_HIDE, null);
+
+                            try {
+                                RootTools.closeAllShells();
+                            } catch (IOException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+
+                        }
+                    }
+
+                    @Override
+                    public void commandCompleted(int id, int exitCode) {
+                        synchronized (SanityCheckRootTools.this) {
+                            _catch = true;
+
+                            visualUpdate(TestHandler.ACTION_PDISPLAY, "All tests complete.");
+                            visualUpdate(TestHandler.ACTION_HIDE, null);
+
+                            try {
+                                RootTools.closeAllShells();
+                            } catch (IOException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+
+                        }
+                    }
+                };
+
+                shell.add(cmd);
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            try {
-                RootTools.closeAllShells();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
         }
 
         private void visualUpdate(int action, String text) {

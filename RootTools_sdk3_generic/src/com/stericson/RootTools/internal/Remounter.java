@@ -31,6 +31,7 @@ import android.util.Log;
 import com.stericson.RootTools.Constants;
 import com.stericson.RootTools.RootTools;
 import com.stericson.RootTools.containers.Mount;
+import com.stericson.RootTools.execution.Command;
 import com.stericson.RootTools.execution.CommandCapture;
 import com.stericson.RootTools.execution.Shell;
 
@@ -82,7 +83,7 @@ public class Remounter {
             }
             if (!foundMount) {
                 try {
-                    file = (new File(file).getParent()).toString();
+                    file = (new File(file).getParent());
                 } catch (Exception e) {
                     e.printStackTrace();
                     return false;
@@ -98,17 +99,16 @@ public class Remounter {
             //grab an instance of the internal class
             try {
                 CommandCapture command = new CommandCapture(0,
+                        true,
                         "busybox mount -o remount," + mountType.toLowerCase() + " " + mountPoint.getDevice().getAbsolutePath() + " " + mountPoint.getMountPoint().getAbsolutePath(),
                         "toolbox mount -o remount," + mountType.toLowerCase() + " " + mountPoint.getDevice().getAbsolutePath() + " " + mountPoint.getMountPoint().getAbsolutePath(),
                         "mount -o remount," + mountType.toLowerCase() + " " + mountPoint.getDevice().getAbsolutePath() + " " + mountPoint.getMountPoint().getAbsolutePath(),
                         "/system/bin/toolbox mount -o remount," + mountType.toLowerCase() + " " + mountPoint.getDevice().getAbsolutePath() + " " + mountPoint.getMountPoint().getAbsolutePath()
                 );
-
                 Shell.startRootShell().add(command);
-                command.waitForFinish();
+                commandWait(command);
 
-            } catch (Exception e) {
-            }
+            } catch (Exception e) {}
 
             mountPoint = findMountPointRecursive(file);
         }
@@ -142,5 +142,15 @@ public class Remounter {
             }
         }
         return null;
+    }
+
+    private void commandWait(Command cmd) {
+        synchronized (cmd) {
+            try {
+                cmd.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -79,32 +79,16 @@ public final class RootTools {
 
     public static boolean debugMode = false;
     public static List<String> lastFoundBinaryPaths = new ArrayList<String>();
-    public static int lastExitCode;
     public static String utilPath;
 
     /**
-     * You can use this to force sendshell to use a shell other than the deafult.
+     * Setting this to false will disable the handler that is used
+     * by default for the 3 callback methods for Command.
+     *
+     * By disabling this all callbacks will be called from a thread other than
+     * the main UI thread.
      */
-    public static String customShell = "";
-
-    /**
-     * Change this to a lower/higher setting to speed up/slow down shell commands if things are
-     * taking too long or you are having constant crashes or timeout exceptions.
-     */
-    public static int shellDelay = 0;
-
-    /**
-     * Many Functions here use root by default, but there may be times that you do not want them to
-     * use root. This can be useful when running a lot of commands at once. By default, if all of
-     * these functions are requesting root access then superuser will notify the user everytime that
-     * root is requested...this can lead to a flood of toast messages from superuser notifying the
-     * user that root access is being requested.
-     * <p/>
-     * Setting this to false will cause sendShell to not use root by default. So any commands sent
-     * to the shell will not have root access unless specifically directed to obtain root access by
-     * you. Some commands will not work properly without root access, so use this with care.
-     */
-    public static boolean useRoot = true;
+    public static boolean handlerEnabled = true;
 
     // ---------------------------
     // # Public Variable Getters #
@@ -395,7 +379,7 @@ public final class RootTools {
      * @throws IOException
      */
     public static Shell getShell(boolean root) throws IOException, TimeoutException, RootDeniedException {
-        return RootTools.getShell(root, 10000);
+        return RootTools.getShell(root, 25000);
     }
 
     /**
@@ -500,6 +484,18 @@ public final class RootTools {
      */
     public static boolean installBinary(Context context, int sourceId, String binaryName) {
         return installBinary(context, sourceId, binaryName, "700");
+    }
+
+    /**
+     * This method checks whether a binary is installed.
+     *
+     * @param context    the current activity's <code>Context</code>
+     * @param binaryName binary file name; appended to /data/data/app.package/files/
+     * @return a <code>boolean</code> which indicates whether or not
+     *         the binary already exists.
+     */
+    public static boolean hasBinary(Context context, String binaryName) {
+        return getInternals().isBinaryAvailable(context, binaryName);
     }
 
     /**

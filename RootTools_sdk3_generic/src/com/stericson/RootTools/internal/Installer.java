@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.stericson.RootTools.RootTools;
+import com.stericson.RootTools.execution.Command;
 import com.stericson.RootTools.execution.CommandCapture;
 import com.stericson.RootTools.execution.Shell;
 
@@ -42,12 +43,12 @@ class Installer {
     //# Installer #
     //-------------
 
-    private static final String LOG_TAG = "RootTools::Installer";
+    static final String LOG_TAG = "RootTools::Installer";
 
-    private static final String BOGUS_FILE_NAME = "bogus";
+    static final String BOGUS_FILE_NAME = "bogus";
 
-    private Context context;
-    private String filesPath;
+    Context context;
+    String filesPath;
 
     public Installer(Context context)
             throws IOException {
@@ -92,8 +93,7 @@ class Installer {
                         try {
                             fos.close();
                             context.deleteFile(BOGUS_FILE_NAME);
-                        } catch (IOException e1) {
-                        }
+                        } catch (IOException e1) {}
                     }
                 }
             } catch (IOException ex) {
@@ -143,11 +143,11 @@ class Installer {
             }
 
             try {
-                CommandCapture command = new CommandCapture(0, "chmod " + mode + " " + filesPath + File.separator + destName);
+                CommandCapture command = new CommandCapture(0, false, "chmod " + mode + " " + filesPath + File.separator + destName);
                 Shell.startRootShell().add(command);
-                command.waitForFinish();
-            } catch (Exception e) {
-            }
+                commandWait(command);
+
+            } catch (Exception e) {}
         }
         return true;
     }
@@ -160,5 +160,15 @@ class Installer {
             // TODO: pass mode as argument and check it matches
         }
         return installed;
+    }
+
+    private void commandWait(Command cmd) {
+        synchronized (cmd) {
+            try {
+                cmd.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

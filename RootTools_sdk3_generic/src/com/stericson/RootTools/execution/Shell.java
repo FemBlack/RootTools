@@ -45,7 +45,7 @@ public class Shell {
     private static Shell shell = null;
     private static Shell customShell = null;
 
-    private static int shellTimeout = 10000;
+    private static int shellTimeout = 25000;
 
     //private constructor responsible for opening/constructing the shell
     private Shell(String cmd) throws IOException, TimeoutException, RootDeniedException {
@@ -77,7 +77,13 @@ public class Shell {
              * The operation could not be completed before the timeout occured.
              */
             if (worker.exit == -911) {
-                proc.destroy();
+
+                try {
+                    proc.destroy();
+                } catch (Exception e) {}
+
+                closeQuietly(in);
+                closeQuietly(out);
 
                 throw new TimeoutException(error);
             }
@@ -85,7 +91,13 @@ public class Shell {
              * Root access denied?
              */
             else if (worker.exit == -42) {
-                proc.destroy();
+
+                try {
+                    proc.destroy();
+                } catch (Exception e) {}
+
+                closeQuietly(in);
+                closeQuietly(out);
 
                 throw new RootDeniedException("Root Access Denied");
             }
@@ -121,6 +133,22 @@ public class Shell {
         }
 
         return command;
+    }
+
+    private void closeQuietly(final Reader input) {
+        try {
+            if (input != null) {
+                input.close();
+            }
+        } catch (Exception ignore) {}
+    }
+
+    private void closeQuietly(final Writer output) {
+        try {
+            if (output != null) {
+                output.close();
+            }
+        } catch (Exception ignore) {}
     }
 
     public void close() throws IOException {
@@ -238,6 +266,7 @@ public class Shell {
                      */
                     if (write < commands.size()) {
                         Command cmd = commands.get(write);
+                        cmd.startExecution();
                         out.write(cmd.getCommand());
                         String line = "\necho " + token + " " + write + " $?\n";
                         out.write(line);
@@ -249,7 +278,6 @@ public class Shell {
                          */
                         out.write("\nexit 0\n");
                         out.flush();
-                        out.close();
                         RootTools.log("Closing shell");
                         return;
                     }
@@ -258,6 +286,8 @@ public class Shell {
                 RootTools.log(e.getMessage(), 2, e);
             } catch (InterruptedException e) {
                 RootTools.log(e.getMessage(), 2, e);
+            } finally {
+                closeQuietly(out);
             }
         }
     };
@@ -271,7 +301,7 @@ public class Shell {
                 Command command = null;
                 int read = 0;
 
-                while (true) {
+                while (!close) {
                     String line = in.readLine();
 
                     /**
@@ -324,6 +354,7 @@ public class Shell {
 
                             if (id == read) {
                                 command.setExitCode(exitCode);
+                                command.commandFinished();
                                 read++;
                                 command = null;
                                 continue;
@@ -333,8 +364,14 @@ public class Shell {
                 }
 
                 RootTools.log("Read all output");
-                proc.waitFor();
-                proc.destroy();
+                try {
+                    proc.waitFor();
+                    proc.destroy();
+                } catch (Exception e) {}
+
+                closeQuietly(out);
+                closeQuietly(in);
+
                 RootTools.log("Shell destroyed");
 
                 while (read < commands.size()) {
@@ -348,8 +385,6 @@ public class Shell {
 
 
             } catch (IOException e) {
-                RootTools.log(e.getMessage(), 2, e);
-            } catch (InterruptedException e) {
                 RootTools.log(e.getMessage(), 2, e);
             }
         }
