@@ -58,8 +58,6 @@ apply plugin: 'maven'
 group = 'com.stericson.RootTools'
 version = '3.2'
 
-android.libraryVariants
-
 uploadArchives {
     repositories {
         mavenDeployer {
