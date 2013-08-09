@@ -1,0 +1,15 @@
+.classpath
+.project
+.externalToolBuilders
+.gradle
+.idea
+bin
+build
+gen
+gradle
+gradlew
+gradlew.bat
+local.properties
+META-INF
+*~
+*.iml

@@ -56,7 +56,7 @@ publishing {
 apply plugin: 'maven'
 
 group = 'com.stericson.RootTools'
-version = '3.2'
+version = '3.2.0'
 
 uploadArchives {
     repositories {
