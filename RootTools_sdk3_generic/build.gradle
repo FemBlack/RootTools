@@ -32,27 +32,6 @@ android {
     }    
 }
 
-/*
-apply plugin: 'maven-publish'
-
-group = 'com.stericson.RootTools'
-version = '3.2'
-
-android.libraryVariants
-publishing {
-    publications {
-        maven(MavenPublication) {
-            artifact bundleRelease
-        }
-    }
-    repositories {
-        maven {
-            url "file://localhost/home/ramdroid/projects/github/mvn-repo"
-        }
-    }
-}
-*/
-
 apply plugin: 'maven'
 
 group = 'com.stericson.RootTools'
@@ -61,7 +40,7 @@ version = '3.2.0'
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: "file://localhost/home/ramdroid/projects/github/mvn-repo")
+            repository(url: "file://localhost/home/ramdroid/projects/github/mvn-repo/experimental")
         }
     }
 }
