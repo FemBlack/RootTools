@@ -22,6 +22,7 @@
 package com.stericson.RootTools.execution;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -49,7 +50,7 @@ public class Shell {
     public static boolean isExecuting = false;
     public static boolean isReading = false;
 
-    private int maxCommands = 300;
+    private int maxCommands = 1000;
     private int read = 0;
     private int write = 0;
     private int totalExecuted = 0;
@@ -155,7 +156,8 @@ public class Shell {
 
     private void cleanCommands() {
         isCleaning = true;
-        int toClean = Math.abs(maxCommands - (maxCommands / 3));
+        int toClean = Math.abs(maxCommands - (maxCommands / 4));
+        RootTools.log("Cleaning up: " + toClean);
         for (int i = 0; i < toClean; i++) {
             commands.remove(0);
         }
@@ -297,6 +299,14 @@ public class Shell {
                     }
 
                     if (write >= maxCommands) {
+
+                        /**
+                         * wait for the read to catch up.
+                         */
+                        while (read != write)
+                        {
+                            RootTools.log("Waiting for read and write to catch up before cleanup.");
+                        }
                         /**
                          * Clean up the commands, stay neat.
                          */
@@ -573,6 +583,7 @@ public class Shell {
                         continue;
                     if ("Started".equals(line)) {
                         this.exit = 1;
+                        setShellOom();
                         break;
                     }
 
@@ -587,5 +598,28 @@ public class Shell {
             }
 
         }
+
+        /*
+         * setOom for shell processes (sh and su if root shell)
+         * and discard outputs
+         * 
+         */
+        private void setShellOom() {
+			try {
+				Class<?> processClass = proc.getClass();
+				Field field = null;
+				try {
+					field = processClass.getDeclaredField("pid");
+				} catch (NoSuchFieldException e) {
+					field = processClass.getDeclaredField("id");
+				}
+				field.setAccessible(true);
+				int pid = (Integer) field.get(proc);
+				out.write("(echo -17 > /proc/" + pid + "/oom_adj) &> /dev/null\n");
+				out.write("(echo -17 > /proc/$$/oom_adj) &> /dev/null\n");
+				out.flush();
+			} catch (Exception e) {
+			}
+		}
     }
 }
